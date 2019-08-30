@@ -1,0 +1,155 @@
+<html>
+
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/openlayers/4.6.5/ol-debug.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/openlayers/4.6.5/ol-debug.js"></script>
+    <script type="text/javascript" src="static/gis/luangwaFlow_.geojson"></script>
+</head>
+<body>
+    <div id="map"></div>
+</body>
+<script>
+    // canvas on which all the flowing lines will be drawn, and some convenience variables
+    var flowCanvas = document.createElement('canvas');
+    flowCanvas.id = 'flow';
+    var flowContext;
+    var flowImageData;
+    var flowData;
+
+    // not too big or this can get hella slow
+    var width = window.innerWidth;
+    var height = window.innerHeight;
+    document.getElementById('map').style.width = width + 'px';
+    document.getElementById('map').style.height = height + 'px';
+
+    flowCanvas.width = width;
+    flowCanvas.height = height;
+    /*flowContext = flowCanvas.getContext('2d');
+    flowContext.strokeStyle = 'rgba(0,150,200,.5)';	// line color for river flow
+    flowContext.fillStlye = '#fff'; // fill is used for fading; apparently the color doesn't matter*/
+
+    var flowInterval;
+    var paths = [];	// will hold the coordinates of current paths
+
+    /*******************/
+    // ArcGIS hillshades
+    var hillLayer = new ol.layer.Tile({
+        source: new ol.source.TileArcGISRest({
+            url: 'http://services.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer',
+            attributions: [
+                new ol.Attribution({
+                    html: '<a href="http://services.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer">Elevation/World_Hillshade</a>' +
+                        ' Tiles by Esri.'
+                })
+            ],
+        })
+    });
+
+    // basins
+    var basinsStyleFunction = function (feature, res) {
+        var style = new ol.style.Style({
+            stroke: new ol.style.Stroke({
+                color: 'rgba(0,150,255,0.1)',	// line color for backround river line
+                width: 216 / (Math.pow(feature.get('riv_ord'), 3)),	// line width for backround river line
+            })
+        });
+        return style;
+    };
+    var basinsLayer = new ol.layer.Vector({
+        source: new ol.source.Vector({
+            features: (new ol.format.GeoJSON()).readFeatures(luangwaBasin),
+        }),
+        style: basinsStyleFunction
+    });
+    basinsLayer.once('postcompose', function (event) {
+        flowContext = event.context;
+        flowContext.strokeStyle = 'rgba(0,150,200,.5)';	// line color for river flow
+        flowContext.fillStlye = '#fff'; // fill is used for fading; apparently the color doesn't matter
+
+        // get coordinates for every feature
+        this.getSource().getFeatures().forEach(function (feature) {
+            getLayerPoint(feature);
+        });
+
+        // drawFlows();
+    });
+
+    var map = new ol.Map({
+        target: document.getElementById('map'),
+        layers: [hillLayer, basinsLayer],
+        view: new ol.View({
+            center: [33, -12.30348],
+            projection: 'EPSG:4326',
+            zoom: 7,
+        }),
+        interactions: ol.interaction.defaults({ altShiftDragRotate: false, pinchRotate: false })
+    });
+
+    function doMapMove() {
+        // stop things so it doesn't redraw in the middle of panning
+        clearTimeout(flowInterval);
+    }
+
+    function getLayerPoint(feature) {
+        var path = { currentIndex: 0, riv_ord: 0, coords: [] };
+
+        feature.getGeometry().getCoordinates()[0].forEach(function (coord) {
+            //const layerPoint = map.latLngToLayerPoint(L.latLng(coord[1], coord[0])); // == map.project - origin
+            var layerPoint = map.getPixelFromCoordinate(coord);
+            //console.log(coord, layerPoint);
+            path.coords.push(layerPoint);
+        });
+        path.riv_ord = feature.get("riv_ord");
+
+        paths.push(path);
+    }
+
+    function drawFlows() {
+        clearInterval(flowInterval);
+
+        var next = true;
+
+        flowInterval = setInterval(function () {
+            // fade out the existing canvas a little bit. this is what creates the trail effect
+            flowContext.save();
+            flowContext.globalCompositeOperation = 'destination-out';
+            flowContext.globalAlpha = 0.1;	// alpha for trail effect
+            flowContext.fillRect(0, 0, width, height);
+            flowContext.restore();
+
+            // now go through all paths and draw each to its next coordinate
+            for (var c in paths) {
+
+                // if next will be past the end...
+                if (paths[c].currentIndex + 1 >= paths[c].coords.length) {
+                    paths[c].currentIndex = 0;
+                }
+
+                for (var i = 0; i < paths[c].coords.length; i += 20) {	// 20 == distance between redrawing lines, lower means more often
+
+                    var pos = parseInt(paths[c].currentIndex + i);
+
+                    if (pos + 1 >= paths[c].coords.length) {
+                        pos = pos - paths[c].coords.length;
+                        if (pos < 0) pos = 0;
+                    }
+
+                    // draw from current point to next point
+                    var x = paths[c].coords[pos][0];
+                    var y = paths[c].coords[pos][1];
+                    var newX = paths[c].coords[pos + 1][0];
+                    var newY = paths[c].coords[pos + 1][1];
+
+                    flowContext.lineWidth = 236 / (Math.pow(paths[c].riv_ord, 3) + 20);	// line width for river flow
+                    flowContext.beginPath();
+                    flowContext.moveTo(x, y);
+                    flowContext.lineTo(newX, newY);
+                    flowContext.stroke();
+                }
+                paths[c].currentIndex++;
+            }
+        }, 50);
+    }
+</script>
+
+</html>

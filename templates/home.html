@@ -1,0 +1,75 @@
+<html>
+
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css"
+        integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+        crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"
+        integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og=="
+        crossorigin=""></script>
+    <!-- Load Esri Leaflet from CDN -->
+    <script src="https://unpkg.com/esri-leaflet/dist/esri-leaflet.js"></script>
+    <!-- <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.1/dist/leaflet.css" />
+    <meta charset="utf-8">
+    <script src="https://unpkg.com/leaflet@1.0.1/dist/leaflet.js"></script> -->
+
+    <script src="static/js/tangram.min.js"></script>
+
+    <style>
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .leaflet-container {
+            background: black;
+        }
+
+        html,
+        body {
+            margin: 0;
+            font-family: 'Roboto', sans-serif;
+            font-size: 16px;
+            /* background-color: black; */
+        }
+
+        #wrapper {
+            position: relative;
+        }
+
+        #drawing {
+            height: 50px;
+            width: 100%;
+            margin-top: -25px;
+            font-size: 40px;
+            color: rgba(255, 255, 255, 0.75);
+            text-align: center;
+            position: absolute;
+            top: 50%;
+            left: 0;
+            z-index: 1000;
+            display: none;
+        }
+
+        .leaflet-tile-pane img {
+            -webkit-filter: grayscale(1) brightness(20%);
+            filter: grayscale(1) brightness(20%);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="wrapper">
+        <div id='map' style='width:800px;height:530px;'></div>
+        <div id='drawing'>
+            Loading...
+        </div>
+    </div>
+    <!-- <script src="{{ url_for('static', filename='js/map.js') }}"></script> -->
+    <script src="{{ url_for('static', filename='js/riverflow.js') }}"></script>
+</body>
+
+</html>
